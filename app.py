@@ -1,5 +1,487 @@
-# ==================== 机构仪表板页面（修复版本）====================
-elif selected == "🏢 机构仪表板":
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+from datetime import datetime, timedelta
+import random
+import time
+
+# ==================== 页面配置 ====================
+st.set_page_config(
+    page_title="S.A.F.E. WebGuard - 金融欺诈防御系统",
+    page_icon="🛡️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ==================== 自定义CSS样式 ====================
+st.markdown("""
+<style>
+    .main-header {
+        color: #1E3A8A;
+        text-align: center;
+        padding: 2rem 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+    
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-left: 5px solid #3B82F6;
+        margin-bottom: 1rem;
+    }
+    
+    .risk-high {
+        border-left: 5px solid #EF4444;
+        background: linear-gradient(90deg, #FEE2E2, #FECACA);
+    }
+    
+    .risk-medium {
+        border-left: 5px solid #F59E0B;
+        background: linear-gradient(90deg, #FEF3C7, #FDE68A);
+    }
+    
+    .risk-low {
+        border-left: 5px solid #10B981;
+        background: linear-gradient(90deg, #D1FAE5, #A7F3D0);
+    }
+    
+    .tech-highlight {
+        background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        border-left: 5px solid #3B82F6;
+    }
+    
+    .blockchain-node {
+        display: inline-block;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        margin: 0 8px;
+        text-align: center;
+        line-height: 35px;
+        font-weight: bold;
+        color: white;
+        font-size: 14px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ==================== 数据生成函数 ====================
+def generate_transaction_data():
+    scenarios = [
+        {"type": "正常转账", "risk": "low", "icon": "✅", "category": "转账"},
+        {"type": "可疑模式", "risk": "medium", "icon": "⚠️", "category": "投资"},
+        {"type": "投资骗局", "risk": "high", "icon": "🚨", "category": "投资"},
+        {"type": "冒充诈骗", "risk": "high", "icon": "🎭", "category": "诈骗"}
+    ]
+    
+    transactions = []
+    for i in range(20):
+        scenario = random.choice(scenarios)
+        amount = random.randint(1000, 500000)
+        risk_score = random.randint(10, 30) if scenario["risk"] == "low" else (
+            random.randint(40, 70) if scenario["risk"] == "medium" else random.randint(75, 99)
+        )
+        
+        transactions.append({
+            "时间": f"{random.randint(9, 16)}:{random.randint(10, 59):02d}",
+            "类型": f"{scenario['icon']} {scenario['type']}",
+            "金额": f"HK${amount:,}",
+            "风险评分": risk_score,
+            "银行": random.choice(["汇丰银行", "中银香港", "恒生银行", "渣打银行"]),
+            "状态": "已完成" if risk_score < 50 else ("已拦截" if risk_score > 75 else "待审核")
+        })
+    
+    return pd.DataFrame(transactions)
+
+def create_risk_gauge(score):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "实时风险评分", 'font': {'size': 24}},
+        delta={'reference': 50, 'increasing': {'color': "red"}, 'decreasing': {'color': "green"}},
+        gauge={
+            'axis': {'range': [None, 100], 'tickwidth': 1},
+            'bar': {'color': "darkblue"},
+            'bgcolor': "white",
+            'borderwidth': 2,
+            'bordercolor': "gray",
+            'steps': [
+                {'range': [0, 30], 'color': "green"},
+                {'range': [30, 70], 'color': "yellow"},
+                {'range': [70, 100], 'color': "red"}
+            ],
+            'threshold': {
+                'line': {'color': "black", 'width': 4},
+                'thickness': 0.75,
+                'value': score
+            }
+        }
+    ))
+    
+    fig.update_layout(height=400, margin=dict(l=20, r=20, t=50, b=20))
+    return fig
+
+def create_fraud_trend_chart():
+    months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=months,
+        y=[45, 48, 52, 55, 58, 62, 60, 57, 53, 50, 48, 45],
+        mode='lines+markers',
+        name='投资诈骗',
+        line=dict(color='#EF4444', width=3)
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=months,
+        y=[32, 35, 38, 40, 42, 45, 43, 41, 38, 36, 34, 32],
+        mode='lines+markers',
+        name='冒充诈骗',
+        line=dict(color='#F59E0B', width=3)
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=months,
+        y=[28, 30, 32, 35, 38, 40, 39, 37, 34, 32, 30, 28],
+        mode='lines+markers',
+        name='电商诈骗',
+        line=dict(color='#3B82F6', width=3)
+    ))
+    
+    fig.update_layout(
+        title={'text': "📈 香港2024年诈骗趋势分析", 'font': {'size': 20}},
+        xaxis_title="月份",
+        yaxis_title="报告案件数量",
+        height=400,
+        template="plotly_white"
+    )
+    
+    return fig
+
+def simulate_ai_analysis(transaction_type, amount):
+    if "投资" in transaction_type or "虚拟" in transaction_type:
+        risk_level = "high_risk"
+        color = "#EF4444"
+        icon = "🚨"
+        score = 85
+    elif "新收款方" in transaction_type or "紧急" in transaction_type:
+        risk_level = "suspicious"
+        color = "#F59E0B"
+        icon = "⚠️"
+        score = 65
+    else:
+        risk_level = "normal"
+        color = "#10B981"
+        icon = "✅"
+        score = 15
+    
+    if amount > 100000:
+        score = min(99, score + 20)
+    elif amount > 50000:
+        score = min(95, score + 10)
+    
+    return {
+        "score": score,
+        "level": risk_level,
+        "color": color,
+        "icon": icon
+    }
+
+# ==================== 侧边栏 ====================
+with st.sidebar:
+    st.markdown("""
+    <div style="text-align: center;">
+        <h2 style="color: #1E3A8A;">🛡️ S.A.F.E. WebGuard</h2>
+        <p style="color: #6B7280;">金融安全生态系统联盟</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 导航菜单
+    page = st.radio(
+        "导航菜单",
+        ["🏠 首页", "💸 实时交易护航", "🧠 AI欺诈智能", "🏢 机构仪表板", "📚 解决方案", "⚙️ 创新技术"],
+        label_visibility="collapsed"
+    )
+    
+    st.markdown("---")
+    
+    # 创新技术亮点
+    st.markdown("### 🚀 创新技术")
+    st.markdown("""
+    <div style="background: #F0F9FF; padding: 15px; border-radius: 10px;">
+    <p><strong>🎯 核心技术：</strong></p>
+    <ul style="margin-left: 20px;">
+    <li>🔐 零知识证明</li>
+    <li>🤖 联邦学习</li>
+    <li>⛓️ 联盟区块链</li>
+    <li>🧠 生成式AI</li>
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 实时状态
+    st.markdown("### 📊 系统状态")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("活跃银行", "8家", "+2")
+    with col2:
+        st.metric("今日防护", "1,428笔", "3.2%")
+    
+    st.progress(0.85, text="系统防护覆盖率 85%")
+
+# ==================== 首页 ====================
+if page == "🏠 首页":
+    st.markdown("""
+    <div class="main-header">
+        <h1>🛡️ S.A.F.E. WebGuard</h1>
+        <h3>金融欺诈防御系统 - 商赛演示版</h3>
+        <p>连接用户、银行、执法机构的三方防护网络</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 创新亮点
+    st.markdown("## 🎯 创新亮点")
+    
+    cols = st.columns(3)
+    
+    with cols[0]:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🔐 隐私保护协作</h3>
+            <p>零知识证明技术让银行无需共享数据即可协同风控</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with cols[1]:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🤖 联邦学习AI</h3>
+            <p>去中心化AI训练，保护数据隐私的同时提升检测能力</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with cols[2]:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>⚡ 实时风险拦截</h3>
+            <p>毫秒级风险识别，平均响应时间2.1秒</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # 快速演示
+    st.markdown("## 🚀 快速演示")
+    
+    demo_col1, demo_col2 = st.columns(2)
+    
+    with demo_col1:
+        st.markdown("### 💸 模拟交易风险检测")
+        
+        scenario = st.selectbox(
+            "选择交易场景",
+            ["向已知联系人转账", "支付给新供应商", "高回报投资存款", "紧急商务转账", "加密货币购买"]
+        )
+        
+        amount = st.slider("金额 (HKD)", 1000, 1000000, 50000, 1000)
+        
+        if st.button("🚀 开始风险扫描", type="primary"):
+            with st.spinner("正在分析交易风险..."):
+                time.sleep(1.5)
+                analysis = simulate_ai_analysis(scenario, amount)
+                
+                if analysis["level"] == "high_risk":
+                    risk_class = "risk-high"
+                elif analysis["level"] == "suspicious":
+                    risk_class = "risk-medium"
+                else:
+                    risk_class = "risk-low"
+                
+                st.markdown(f"""
+                <div class="{risk_class}">
+                    <h3>{analysis['icon']} 风险评分: {analysis['score']}/100</h3>
+                    <p><strong>分析结果：</strong>交易已通过S.A.F.E.系统验证</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    with demo_col2:
+        st.markdown("### 📈 欺诈趋势预览")
+        fig = create_fraud_trend_chart()
+        st.plotly_chart(fig, use_container_width=True)
+
+# ==================== 实时交易护航页面 ====================
+elif page == "💸 实时交易护航":
+    st.markdown("# 💸 实时交易护航")
+    st.markdown("### 基于零知识证明的隐私保护交易风控")
+    
+    # 交易输入区域
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        transaction_type = st.selectbox(
+            "交易类型",
+            ["向已知联系人转账", "支付给新供应商", "高回报投资存款", "紧急商务转账", "加密货币购买"]
+        )
+        
+        amount = st.number_input(
+            "金额 (HKD)",
+            min_value=1000,
+            max_value=1000000,
+            value=50000,
+            step=1000
+        )
+        
+        recipient_bank = st.selectbox(
+            "收款银行",
+            ["汇丰银行", "中银香港", "恒生银行", "渣打银行", "虚拟银行", "海外银行"]
+        )
+    
+    with col2:
+        user_profile = st.selectbox(
+            "用户画像",
+            ["普通用户", "企业主", "老年用户", "新居民", "金融从业者"]
+        )
+        
+        urgency = st.select_slider(
+            "紧急程度",
+            options=["低", "中", "高", "非常紧急"]
+        )
+    
+    # 区块链验证可视化
+    st.markdown("### 🔗 联盟区块链验证")
+    
+    # 创建区块链节点
+    nodes = ["汇丰", "中银", "恒生", "渣打", "金管局", "警方"]
+    nodes_html = ""
+    for node in nodes:
+        color = "#10B981" if random.random() > 0.3 else "#F59E0B"
+        nodes_html += f'<div class="blockchain-node" style="background-color: {color};">{node}</div>'
+    
+    st.markdown(f"""
+    <div style="text-align: center; margin: 20px 0;">
+        {nodes_html}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 开始分析按钮
+    if st.button("🚀 启动S.A.F.E.护航扫描", type="primary", use_container_width=True):
+        with st.spinner("正在调用零知识证明协议..."):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for i in range(100):
+                progress_bar.progress(i + 1)
+                if i < 25:
+                    status_text.text("⚡ 生成零知识证明...")
+                elif i < 50:
+                    status_text.text("🔄 向联盟银行查询...")
+                elif i < 75:
+                    status_text.text("🔐 验证隐私数据...")
+                else:
+                    status_text.text("✅ 完成风险评估...")
+                time.sleep(0.02)
+            
+            progress_bar.empty()
+            status_text.empty()
+            
+            # 显示分析结果
+            analysis = simulate_ai_analysis(transaction_type, amount)
+            fig = create_risk_gauge(analysis["score"])
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 详细分析
+            if analysis["level"] == "high_risk":
+                risk_class = "risk-high"
+                message = "🚨 高风险警报：交易特征与已知诈骗模式匹配"
+            elif analysis["level"] == "suspicious":
+                risk_class = "risk-medium"
+                message = "⚠️ 检测到可疑模式：金额超出用户常规范围"
+            else:
+                risk_class = "risk-low"
+                message = "✅ 交易模式正常，风险评估通过"
+            
+            st.markdown(f"""
+            <div class="{risk_class}">
+                <h3>{analysis['icon']} {message}</h3>
+                <p><strong>⚡ 响应时间:</strong> 2.3秒</p>
+                <p><strong>🏦 咨询银行:</strong> 4家联盟银行</p>
+                <p><strong>🔗 区块链确认:</strong> 6个节点</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # 显示交易数据
+            st.markdown("### 📋 实时交易监控")
+            transactions = generate_transaction_data()
+            st.dataframe(transactions, use_container_width=True)
+
+# ==================== AI欺诈智能页面 ====================
+elif page == "🧠 AI欺诈智能":
+    st.markdown("# 🧠 AI欺诈智能")
+    st.markdown("### 基于生成式AI的欺诈预测与防御")
+    
+    # AI预测展示
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("### 🔮 AI欺诈预测")
+        
+        predictions = pd.DataFrame({
+            "预测类型": [
+                "AI合成投资讲座骗局",
+                "跨境虚拟资产套利诈骗",
+                "政府电子支付冒充",
+                "供应链发票欺诈"
+            ],
+            "概率": ["87%", "74%", "69%", "63%"],
+            "目标群体": ["中年投资者", "年轻科技投资者", "新移民/学生", "中小企业财务"],
+            "应对措施": ["验证API + 实时交互检查", "教育计划 + 平台白名单", "官方渠道验证", "区块链发票验证"]
+        })
+        
+        st.dataframe(predictions, use_container_width=True)
+    
+    with col2:
+        st.markdown("### 🎯 实时风险热点")
+        
+        risk_data = [
+            {"地区": "九龙东", "风险": 85, "趋势": "📈"},
+            {"地区": "港岛", "风险": 72, "趋势": "📉"},
+            {"地区": "新界西", "风险": 65, "趋势": "➡️"},
+            {"地区": "九龙西", "风险": 78, "趋势": "📈"},
+            {"地区": "新界东", "风险": 70, "趋势": "➡️"}
+        ]
+        
+        for data in risk_data:
+            bg_color = "#FEE2E2" if data["风险"] > 75 else "#FEF3C7" if data["风险"] > 60 else "#D1FAE5"
+            st.markdown(f"""
+            <div style="padding: 10px; border-radius: 8px; background: {bg_color}; margin: 5px 0;">
+                <strong>{data['地区']}</strong><br>
+                风险指数: {data['风险']} {data['趋势']}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # 欺诈趋势分析
+    st.markdown("### 📈 欺诈趋势分析")
+    trend_fig = create_fraud_trend_chart()
+    st.plotly_chart(trend_fig, use_container_width=True)
+
+# ==================== 机构仪表板页面 ====================
+elif page == "🏢 机构仪表板":
     st.markdown("# 🏢 机构仪表板")
     st.markdown("### 银行联盟与执法机构协作平台")
     
@@ -7,20 +489,18 @@ elif selected == "🏢 机构仪表板":
     st.markdown("## 🏦 银行联盟控制台")
     
     bank_cols = st.columns(4)
-    bank_metrics = [
-        {"label": "今日查询", "value": "1,428", "change": "+3.2%", "icon": "📊"},
-        {"label": "证明生成时间", "value": "0.8秒", "change": "-12%", "icon": "⚡"},
-        {"label": "隐私保护率", "value": "100%", "change": "0%", "icon": "🔐"},
-        {"label": "误报率", "value": "2.3%", "change": "-15%", "icon": "📉"}
-    ]
     
-    for idx, metric in enumerate(bank_metrics):
-        with bank_cols[idx]:
-            st.metric(
-                label=f"{metric['icon']} {metric['label']}",
-                value=metric['value'],
-                delta=metric['change']
-            )
+    with bank_cols[0]:
+        st.metric("今日查询", "1,428", "+3.2%")
+    
+    with bank_cols[1]:
+        st.metric("证明生成时间", "0.8秒", "-12%")
+    
+    with bank_cols[2]:
+        st.metric("隐私保护率", "100%", "0%")
+    
+    with bank_cols[3]:
+        st.metric("误报率", "2.3%", "-15%")
     
     # 银行排名
     st.markdown("#### 🏆 银行安全排名")
@@ -33,45 +513,24 @@ elif selected == "🏢 机构仪表板":
         "贡献度": ["35%", "28%", "18%", "12%", "7%"]
     })
     
-    st.dataframe(
-        bank_ranking,
-        column_config={
-            "银行": "银行名称",
-            "安全评分": st.column_config.ProgressColumn(
-                "安全评分",
-                min_value=0,
-                max_value=1000,
-                format="%d"
-            ),
-            "生成警报": "生成警报数",
-            "联盟等级": st.column_config.SelectboxColumn(
-                "联盟等级",
-                options=["铜牌", "银牌", "金牌", "白金"]
-            ),
-            "贡献度": "数据贡献度"
-        },
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(bank_ranking, use_container_width=True)
     
     # 执法机构部分
     st.markdown("## 👮 警务处协作中心")
     
     police_cols = st.columns(4)
-    police_metrics = [
-        {"label": "本月预防案件", "value": "84", "change": "+18%", "icon": "🛡️"},
-        {"label": "保护资金", "value": "3.12亿", "change": "+22%", "icon": "💰"},
-        {"label": "平均响应时间", "value": "42分钟", "change": "-28%", "icon": "⚡"},
-        {"label": "公众满意度", "value": "94.2%", "change": "+3.5%", "icon": "😊"}
-    ]
     
-    for idx, metric in enumerate(police_metrics):
-        with police_cols[idx]:
-            st.metric(
-                label=f"{metric['icon']} {metric['label']}",
-                value=metric['value"],
-                delta=metric['change']
-            )
+    with police_cols[0]:
+        st.metric("本月预防案件", "84", "+18%")
+    
+    with police_cols[1]:
+        st.metric("保护资金", "3.12亿", "+22%")
+    
+    with police_cols[2]:
+        st.metric("平均响应时间", "42分钟", "-28%")
+    
+    with police_cols[3]:
+        st.metric("公众满意度", "94.2%", "+3.5%")
     
     # 案件洞察
     st.markdown("#### 🔍 案件洞察")
@@ -84,44 +543,9 @@ elif selected == "🏢 机构仪表板":
         "状态": ["进行中", "已解决", "调查中", "监控中"]
     })
     
-    # 修复这里的括号问题
-    st.dataframe(
-        case_data,
-        column_config={
-            "洞察": st.column_config.TextColumn("关键洞察", width="large"),
-            "严重程度": st.column_config.SelectboxColumn(
-                "严重程度",
-                options=["低", "中", "高", "严重"]
-            ),
-            "受影响群体": "主要受影响群体",
-            "应对行动": "推荐应对行动",
-            "状态": st.column_config.SelectboxColumn(
-                "处理状态",
-                options=["待处理", "进行中", "已解决", "监控中"]
-            )
-        },  # 这里添加了闭合的大括号
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(case_data, use_container_width=True)
     
-    # 添加更多内容以完善页面
-    st.markdown("---")
-    
-    # 实时交易监控
-    st.markdown("#### 📈 实时交易监控")
-    
-    # 生成实时交易数据
-    realtime_data = pd.DataFrame({
-        "时间": [f"{i}:{random.randint(10, 59):02d}" for i in range(9, 18)],
-        "交易类型": random.choices(["转账", "投资", "支付", "取款"], k=9),
-        "金额": [random.randint(1000, 100000) for _ in range(9)],
-        "风险等级": random.choices(["低", "中", "高"], k=9),
-        "处理状态": random.choices(["已拦截", "已放行", "待审核"], k=9)
-    })
-    
-    st.dataframe(realtime_data, use_container_width=True)
-    
-    # 添加创新技术展示
+    # 创新技术展示
     st.markdown("---")
     st.markdown("## 🚀 创新技术应用展示")
     
@@ -137,8 +561,6 @@ elif selected == "🏢 机构仪表板":
         <li>仅验证风险证明的真实性</li>
         <li>完全保护用户隐私</li>
         </ul>
-        <p><strong>技术优势：</strong></p>
-        <p>采用ZK-SNARKs协议，证明生成时间<1秒</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -152,8 +574,6 @@ elif selected == "🏢 机构仪表板":
         <li>各银行本地训练模型</li>
         <li>全局模型聚合更新</li>
         </ul>
-        <p><strong>技术优势：</strong></p>
-        <p>欺诈检测准确率提升至96%</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -167,18 +587,16 @@ elif selected == "🏢 机构仪表板":
         <li>不可篡改审计追踪</li>
         <li>透明化协作平台</li>
         </ul>
-        <p><strong>技术优势：</strong></p>
-        <p>响应时间从3天缩短至5分钟</p>
         </div>
         """, unsafe_allow_html=True)
 
 # ==================== 解决方案页面 ====================
-elif selected == "📚 解决方案":
+elif page == "📚 解决方案":
     st.markdown("# 📚 S.A.F.E. WebGuard 解决方案")
     st.markdown("### 完整的技术架构与商业模型")
     
     # 创建选项卡
-    tab1, tab2, tab3, tab4 = st.tabs(["技术架构", "商业模型", "实施路线", "竞争优势"])
+    tab1, tab2, tab3 = st.tabs(["技术架构", "商业模型", "竞争优势"])
     
     with tab1:
         st.markdown("## 🏗️ 技术架构体系")
@@ -208,17 +626,7 @@ elif selected == "📚 解决方案":
         - 所有风险评估的不可变审计追踪
         - 透明贡献度跟踪
         - 防篡改调查证据
-        
-        **4. 生成式AI预测器**
-        - 分析多数据源模式
-        - 预测新兴欺诈手法
-        - 生成个性化培训场景
         """)
-        
-        # 技术架构图
-        st.markdown("### 🖼️ 系统架构图")
-        st.image("https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVERcbiAgICBBW1VzZXJdIC0tPiBCW01vYmlsZSBCYW5raW5nIEFwcF1cbiAgICBCIC0tPiBDW1MuQS5GLkUuIFdlYkd1YXJkXVxuICAgIEMgLS0-IEVbWmVyby1Lbm93bGVkZ2UgUHJvb2ZdXG4gICAgRSAtLT4gRltGZWRlcmF0ZWQgTGVhcm5pbmcgQUldXG4gICAgRiAtLT4gR1tDb25zb3J0aXVtIEJsb2NrY2hhaW5dXG4gICAgRyAtLT4gSFtCYW5rIEFdXG4gICAgRyAtLT4gSVtCYW5rIEJdXG4gICAgRyAtLT4gSltCYW5rIENdXG4gICAgRyAtLT4gS1tBRENDXSIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9", 
-                 caption="S.A.F.E. WebGuard 技术架构图")
     
     with tab2:
         st.markdown("## 💰 商业模型")
@@ -245,285 +653,4 @@ elif selected == "📚 解决方案":
             st.metric("政府资助", "150-300万/年", "犯罪预防")
         
         with revenue_cols[2]:
-            st.metric("保险合作", "100-200万/年", "风险降低")
-        
-        with revenue_cols[3]:
-            st.metric("国际授权", "待拓展", "区域扩张")
-    
-    with tab3:
-        st.markdown("## 🗺️ 实施路线图")
-        
-        st.markdown("""
-        <div class="timeline-container">
-        <div class="timeline-item">
-        <h4>第一阶段：基础建设（1-6个月）</h4>
-        <p>• 核心银行联盟（3大银行）</p>
-        <p>• 基础ZKP基础设施</p>
-        <p>• MVP移动端集成</p>
-        </div>
-        
-        <div class="timeline-item">
-        <h4>第二阶段：扩展（7-18个月）</h4>
-        <p>• 完整银行生态系统（10+机构）</p>
-        <p>• ADCC整合</p>
-        <p>• AI预测引擎上线</p>
-        </div>
-        
-        <div class="timeline-item">
-        <h4>第三阶段：成熟（19-36个月）</h4>
-        <p>• 80%市场覆盖率</p>
-        <p>• 国际扩张</p>
-        <p>• 高级AI能力</p>
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with tab4:
-        st.markdown("## 🏆 竞争优势")
-        
-        advantage_data = pd.DataFrame({
-            "维度": ["技术优势", "商业模式", "生态系统", "监管支持"],
-            "S.A.F.E.方案": [
-                "零知识证明+联邦学习+区块链",
-                "SaaS+政府+保险多收入流",
-                "用户-银行-警方三方网络",
-                "金管局+警务处合作"
-            ],
-            "传统方案": [
-                "单一AI或规则引擎",
-                "一次性销售或维护费",
-                "单点解决方案",
-                "有限监管协作"
-            ],
-            "优势程度": ["⭐⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐", "⭐⭐⭐⭐"]
-        })
-        
-        st.dataframe(advantage_data, use_container_width=True)
-
-# ==================== 创新技术页面 ====================
-elif selected == "⚙️ 创新技术":
-    st.markdown("# ⚙️ 创新技术详解")
-    st.markdown("### 商赛核心技术亮点展示")
-    
-    tech_tabs = st.tabs(["零知识证明", "联邦学习", "联盟区块链", "生成式AI"])
-    
-    with tech_tabs[0]:
-        st.markdown("## 🔐 零知识证明技术")
-        
-        st.markdown("""
-        ### 🎯 商赛创新应用
-        
-        **传统问题：**
-        - 银行间不敢共享敏感数据
-        - 数据隐私法规限制
-        - 信息孤岛效应
-        
-        **S.A.F.E.解决方案：**
-        - 银行A：生成"账户X高风险"的零知识证明
-        - 银行B：验证证明的真实性，无需看到原始数据
-        - 结果：协同风控，隐私保护
-        
-        ### ⚡ 技术实现
-        """)
-        
-        # ZKP演示
-        if st.button("🔍 演示零知识证明过程", type="primary"):
-            with st.expander("查看详细过程", expanded=True):
-                st.markdown("""
-                **步骤1：证明生成**
-                ```
-                银行A输入：{账户X，交易模式，风险评分}
-                ZKP算法 → 生成加密证明
-                输出：π (证明)，无原始数据泄露
-                ```
-                
-                **步骤2：证明验证**
-                ```
-                银行B输入：π (证明)
-                验证算法 → 返回：true/false
-                输出：验证结果，不学习任何额外信息
-                ```
-                
-                **步骤3：协同决策**
-                ```
-                多个银行验证同一证明
-                达成共识：账户X确实高风险
-                采取协同防护措施
-                ```
-                """)
-                
-                # 模拟证明过程
-                st.markdown("### 📊 模拟演示")
-                
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                steps = [
-                    ("🔐 加密原始数据", 25),
-                    ("🧮 生成零知识证明", 50),
-                    ("🔍 发送证明给联盟银行", 75),
-                    ("✅ 验证通过，达成共识", 100)
-                ]
-                
-                for step_text, progress in steps:
-                    status_text.text(f"正在执行: {step_text}")
-                    progress_bar.progress(progress)
-                    time.sleep(1)
-                
-                st.success("✅ 零知识证明验证成功！隐私数据全程保护。")
-    
-    with tech_tabs[1]:
-        st.markdown("## 🤖 联邦学习技术")
-        
-        st.markdown("""
-        ### 🎯 商赛创新应用
-        
-        **传统AI困境：**
-        - 需要集中训练数据
-        - 隐私泄露风险
-        - 数据合规挑战
-        
-        **联邦学习优势：**
-        - 数据留在本地银行
-        - 仅交换模型参数
-        - 全局模型协同进化
-        
-        ### 🏗️ 架构设计
-        """)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("""
-            **🔵 本地训练阶段**
-            1. 各银行本地训练AI模型
-            2. 使用自身客户数据
-            3. 生成模型更新参数
-            
-            **🟢 参数聚合阶段**
-            1. 上传加密的模型参数
-            2. 中央服务器安全聚合
-            3. 生成全局模型
-            """)
-        
-        with col2:
-            st.markdown("""
-            **🟡 模型分发阶段**
-            1. 分发更新后的全局模型
-            2. 各银行接收并验证
-            3. 替换本地模型
-            
-            **🔴 效果评估**
-            - 欺诈检测准确率：+28%
-            - 数据隐私保护：100%
-            - 模型更新频率：每小时
-            """)
-    
-    with tech_tabs[2]:
-        st.markdown("## ⛓️ 联盟区块链")
-        
-        st.markdown("""
-        ### 🎯 商赛创新应用
-        
-        **传统审计问题：**
-        - 中心化记录易被篡改
-        - 多方协作缺乏信任
-        - 调查取证困难
-        
-        **区块链解决方案：**
-        - 分布式账本不可篡改
-        - 智能合约自动化执行
-        - 透明化协作信任
-        
-        ### 🔗 区块链网络结构
-        """)
-        
-        # 区块链节点可视化
-        st.markdown("#### 🌐 联盟节点分布")
-        
-        nodes = [
-            {"name": "汇丰银行", "type": "验证节点", "status": "在线"},
-            {"name": "中银香港", "type": "验证节点", "status": "在线"},
-            {"name": "恒生银行", "type": "验证节点", "status": "在线"},
-            {"name": "金管局", "type": "监管节点", "status": "在线"},
-            {"name": "警务处", "type": "执法节点", "status": "在线"},
-            {"name": "证监会", "type": "监管节点", "status": "离线"}
-        ]
-        
-        for node in nodes:
-            status_icon = "🟢" if node["status"] == "在线" else "🔴"
-            node_type_color = "#3B82F6" if "银行" in node["type"] else "#10B981" if "监管" in node["type"] else "#EF4444"
-            
-            st.markdown(f"""
-            <div style="display: flex; align-items: center; padding: 10px; margin: 5px 0; background: #F8FAFC; border-radius: 8px; border-left: 4px solid {node_type_color};">
-                <div style="flex: 1;">
-                    <strong>{node['name']}</strong><br>
-                    <small style="color: #6B7280;">{node['type']}</small>
-                </div>
-                <div style="margin-left: auto;">
-                    {status_icon} {node['status']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    with tech_tabs[3]:
-        st.markdown("## 🧠 生成式AI技术")
-        
-        st.markdown("""
-        ### 🎯 商赛创新应用
-        
-        **传统风控局限：**
-        - 基于历史模式的检测
-        - 难以预测新型诈骗
-        - 缺乏个性化教育
-        
-        **生成式AI优势：**
-        - 模拟未来诈骗场景
-        - 生成个性化培训内容
-        - 预测新兴风险模式
-        
-        ### 🎭 AI生成演示
-        """)
-        
-        if st.button("🤖 生成新型诈骗场景预测", type="primary"):
-            with st.spinner("AI正在分析趋势并生成预测..."):
-                time.sleep(2)
-                
-                st.markdown("""
-                ### 🔮 AI生成预测结果
-                
-                **新型诈骗类型：** 元宇宙投资诈骗
-                
-                **预测特征：**
-                - 利用元宇宙概念包装
-                - 承诺虚拟地产高回报
-                - 目标：年轻科技投资者
-                - 预计发生率：2024年增长300%
-                
-                **AI推荐防御策略：**
-                1. 建立虚拟资产交易白名单
-                2. 元宇宙项目尽职调查指南
-                3. 投资者教育：区分真实项目与骗局
-                4. 实时监控虚拟资产异常流动
-                
-                **技术实现：**
-                - 使用GPT-4分析网络趋势
-                - 结合历史诈骗模式识别
-                - 生成针对性防御方案
-                """)
-
-# ==================== 页脚 ====================
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #6B7280; padding: 20px;">
-    <p><strong>🛡️ S.A.F.E. WebGuard | 金融欺诈防御系统 v2.0</strong></p>
-    <p>商赛演示应用 | 非生产环境使用</p>
-    <p>技术支持：联邦学习 + 零知识证明 + 联盟区块链 + 生成式AI</p>
-    <p>© 2024 S.A.F.E. Technologies | 保留所有权利</p>
-</div>
-""", unsafe_allow_html=True)
-
-# ==================== 运行说明 ====================
-if __name__ == "__main__":
-    # 在Streamlit Cloud上自动运行
-    pass
+            st.metric("保险合作", "100

@@ -3,403 +3,590 @@ import time
 import random
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# ==================== 页面配置 ====================
+# ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="智盾金融反诈系统",
+    page_title="Seadria Antifraud System",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ==================== 自定义CSS美化 ====================
+# ==================== CUSTOM CSS ====================
 st.markdown("""
 <style>
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         color: #1E3A8A;
         text-align: center;
         margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    .company-name {
+        color: #2563EB;
+        font-weight: 800;
     }
     .risk-high {
         color: #DC2626;
         font-weight: bold;
-        padding: 5px 10px;
+        padding: 8px 15px;
         background-color: #FEE2E2;
-        border-radius: 5px;
+        border-radius: 8px;
+        border-left: 4px solid #DC2626;
     }
     .risk-medium {
         color: #D97706;
         font-weight: bold;
-        padding: 5px 10px;
+        padding: 8px 15px;
         background-color: #FEF3C7;
-        border-radius: 5px;
+        border-radius: 8px;
+        border-left: 4px solid #D97706;
     }
     .risk-low {
         color: #059669;
         font-weight: bold;
-        padding: 5px 10px;
+        padding: 8px 15px;
         background-color: #D1FAE5;
-        border-radius: 5px;
+        border-radius: 8px;
+        border-left: 4px solid #059669;
     }
-    .blockchain-animation {
-        border-left: 3px solid #3B82F6;
-        padding-left: 1rem;
-        background: linear-gradient(90deg, #F0F9FF, white);
-        margin: 1rem 0;
-        padding: 1rem;
+    .block-card {
+        border: 1px solid #E5E7EB;
+        border-radius: 10px;
+        padding: 20px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+    }
+    .feature-card {
+        background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #BAE6FD;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== 侧边栏导航 ====================
-st.sidebar.title("🛡️ 智盾导航")
+# ==================== SIDEBAR NAVIGATION ====================
+st.sidebar.markdown(f"""
+<div style='text-align: center; margin-bottom: 30px;'>
+    <h2 style='color: #2563EB;'>🛡️ Seadria</h2>
+    <h3 style='color: #1E3A8A; font-size: 1.1rem;'>Antifraud Intelligence</h3>
+</div>
+""", unsafe_allow_html=True)
+
 page = st.sidebar.radio(
-    "选择演示模块",
-    ["🏠 总览看板", "💸 模拟转账体验", "🔗 联盟链监控", "📊 数据与成效"]
+    "Navigation",
+    ["📊 Overview Dashboard", "💸 Transaction Simulator", "🔗 Alliance Monitor", "📈 Analytics & Reports"]
 )
 
-# ==================== 模拟数据生成 ====================
+# ==================== DATA GENERATION ====================
 def generate_transaction_data():
-    """生成模拟交易数据"""
-    transactions = []
-    patterns = ["正常消费", "刷单返利", "虚假投资", "冒充公检法", "虚拟货币洗钱"]
+    """Generate mock transaction data"""
+    fraud_patterns = ["Normal Purchase", "Task Fraud", "Fake Investment", "Authority Impersonation", "Money Laundering"]
+    data = []
     
-    for i in range(100):
-        trans_type = random.choice(patterns)
-        amount = random.randint(100, 50000)
-        risk_score = random.randint(1, 100)
+    for i in range(150):
+        pattern = random.choice(fraud_patterns)
+        amount = random.randint(50, 50000)
         
-        # 根据类型调整风险
-        if trans_type in ["刷单返利", "虚假投资"]:
-            risk_score = random.randint(70, 95)
-        elif trans_type == "冒充公检法":
-            risk_score = random.randint(85, 99)
-        elif trans_type == "正常消费":
-            risk_score = random.randint(1, 30)
-            
-        transactions.append({
-            "时间": f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d} {random.randint(10,20):02d}:{random.randint(0,59):02d}",
-            "类型": trans_type,
-            "金额(元)": amount,
-            "风险评分": risk_score,
-            "状态": "成功" if risk_score < 50 else ("已拦截" if risk_score > 70 else "人工审核")
+        # Set base risk score based on pattern
+        if pattern == "Task Fraud":
+            risk = random.randint(75, 95)
+            status = "Blocked" if risk > 85 else "Under Review"
+        elif pattern == "Fake Investment":
+            risk = random.randint(80, 98)
+            status = "Blocked" if risk > 80 else "Under Review"
+        elif pattern == "Authority Impersonation":
+            risk = random.randint(85, 99)
+            status = "Blocked"
+        elif pattern == "Money Laundering":
+            risk = random.randint(70, 90)
+            status = "Under Review"
+        else:
+            risk = random.randint(5, 30)
+            status = "Completed"
+        
+        # Generate timestamp
+        days_ago = random.randint(0, 30)
+        hours_ago = random.randint(0, 23)
+        timestamp = datetime.now() - timedelta(days=days_ago, hours=hours_ago)
+        
+        data.append({
+            "Timestamp": timestamp.strftime("%Y-%m-%d %H:%M"),
+            "Pattern": pattern,
+            "Amount (USD)": f"${amount:,}",
+            "Risk Score": risk,
+            "Status": status,
+            "Bank": random.choice(["Bank A", "Bank B", "Bank C", "Bank D"])
         })
     
-    return pd.DataFrame(transactions)
+    return pd.DataFrame(data)
 
-# ==================== 各页面内容 ====================
-if page == "🏠 总览看板":
-    # 标题和介绍
-    st.markdown('<h1 class="main-header">🛡️ 智盾金融反诈系统演示平台</h1>', unsafe_allow_html=True)
-    st.markdown("### 基于联邦学习与区块链的协同防御网络")
+# ==================== PAGES ====================
+if page == "📊 Overview Dashboard":
+    # HEADER
+    st.markdown('<h1 class="main-header">🛡️ Seadria Antifraud Intelligence Platform</h1>', unsafe_allow_html=True)
+    st.markdown('<h3 style="text-align: center; color: #4B5563; margin-bottom: 40px;">Federated Learning & Blockchain-Powered Defense Network</h3>', unsafe_allow_html=True)
     
-    # 关键指标展示
+    # KEY METRICS
+    st.markdown("### 📈 Real-time System Metrics")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("联盟成员", "8 家机构", "+3")
+        st.metric("Alliance Members", "12 Institutions", "+2")
     with col2:
-        st.metric("日均监测交易", "1.2M 笔", "+15%")
+        st.metric("Transactions/Day", "2.4M", "+18.2%")
     with col3:
-        st.metric("诈骗识别准确率", "94.3%", "+8.2%")
+        st.metric("Detection Accuracy", "96.7%", "▲ 2.1%")
     with col4:
-        st.metric("累计挽回损失", "¥4.2亿", "+¥0.8亿")
+        st.metric("Losses Prevented", "$520M", "+$42M")
     
-    # 图表展示
     st.markdown("---")
-    st.subheader("📈 近7天诈骗类型分布")
     
-    # 生成图表数据
-    fraud_types = ["虚拟投资理财", "刷单返利", "冒充客服", "贷款诈骗", "其他"]
-    daily_counts = [
-        [45, 32, 18, 12, 8],
-        [48, 35, 16, 10, 7],
-        [52, 38, 20, 15, 9],
-        [47, 33, 17, 13, 8],
-        [50, 36, 19, 14, 10],
-        [55, 40, 22, 16, 11],
-        [53, 39, 21, 15, 10]
-    ]
+    # TECHNOLOGY FEATURES
+    st.markdown("### 🚀 Core Technology Advantages")
     
-    df_chart = pd.DataFrame({
-        '日期': ['11-01', '11-02', '11-03', '11-04', '11-05', '11-06', '11-07'] * 5,
-        '类型': fraud_types * 7,
-        '数量': [item for sublist in daily_counts for item in sublist]
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        with st.container():
+            st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+            st.markdown("""
+            ### 🤝 Federated Learning
+            **Privacy-Preserving AI**
+            - Data never leaves local banks
+            - Collaborative model training
+            - GDPR/CCPA compliant
+            - Zero raw data sharing
+            """)
+            st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        with st.container():
+            st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+            st.markdown("""
+            ### 🔗 Blockchain Consortium
+            **Transparent & Auditable**
+            - Immutable audit trail
+            - Contribution tokenization
+            - Smart contract automation
+            - Cross-institution trust
+            """)
+            st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col3:
+        with st.container():
+            st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+            st.markdown("""
+            ### 🎯 Context-Aware Protection
+            **Real-time Intervention**
+            - Behavioral pattern recognition
+            - Multi-layered defense
+            - Family protection network
+            - Instant risk neutralization
+            """)
+            st.markdown('</div>', unsafe_allow_html=True)
+    
+    # FRAUD TRENDS
+    st.markdown("---")
+    st.markdown("### 📊 Fraud Pattern Trends (Last 30 Days)")
+    
+    trends_data = pd.DataFrame({
+        "Date": pd.date_range(start="2024-10-01", periods=30, freq="D"),
+        "Investment Fraud": [random.randint(40, 65) for _ in range(30)],
+        "Task Scams": [random.randint(30, 55) for _ in range(30)],
+        "Impersonation": [random.randint(15, 35) for _ in range(30)],
+        "Money Laundering": [random.randint(10, 30) for _ in range(30)]
     })
     
-    fig = px.line(df_chart, x='日期', y='数量', color='类型', 
-                  title='各类诈骗趋势监控', markers=True)
+    fig = px.line(trends_data.melt(id_vars=["Date"], var_name="Fraud Type", value_name="Cases"),
+                  x="Date", y="Cases", color="Fraud Type",
+                  title="Daily Fraud Case Distribution",
+                  markers=True)
     st.plotly_chart(fig, use_container_width=True)
-    
-    # 系统架构图示意
-    st.markdown("---")
-    st.subheader("🏗️ 系统架构核心优势")
-    
-    cols = st.columns(3)
-    with cols[0]:
-        st.info("""
-        **🤝 联邦学习协作**
-        - 数据不出本地
-        - 联合训练AI模型
-        - 保护隐私合规
-        """)
-    with cols[1]:
-        st.warning("""
-        **🔗 区块链审计**
-        - 操作全程可追溯
-        - 贡献度量化激励
-        - 不可篡改存证
-        """)
-    with cols[2]:
-        st.success("""
-        **🎯 精准干预**
-        - 情景化预警
-        - 家庭守护联动
-        - 实时风险阻断
-        """)
 
-elif page == "💸 模拟转账体验":
-    st.title("💸 模拟转账风险拦截演示")
+elif page == "💸 Transaction Simulator":
+    st.title("💸 Transaction Risk Simulator")
+    st.markdown("*Experience real-time fraud detection in action*")
     
-    # 创建两列布局
-    left_col, right_col = st.columns([2, 1])
+    # TWO-COLUMN LAYOUT
+    sim_col, demo_col = st.columns([2, 1])
     
-    with left_col:
-        st.subheader("1. 转账信息填写")
+    with sim_col:
+        st.markdown("### 1. Transaction Details")
         
-        # 账户选择
-        account_type = st.radio(
-            "选择转账场景",
-            ["正常朋友转账", "兼职刷单佣金", "高收益投资", "缴纳'安全保证金'"],
+        # SCENARIO SELECTION
+        scenario = st.radio(
+            "Select Transaction Scenario:",
+            ["💰 Normal Transfer to Friend", 
+             "📱 Task Commission Payment", 
+             "📈 High-Return Investment", 
+             "⚖️ 'Legal Fee' Payment"],
             horizontal=True
         )
         
-        # 根据场景预设信息
-        preset_info = {
-            "正常朋友转账": {"account": "6217********1234", "name": "李明", "bank": "招商银行"},
-            "兼职刷单佣金": {"account": "0x8a7f...e5c9", "name": "XX刷单平台", "bank": "虚拟货币地址"},
-            "高收益投资": {"account": "http://fake-invest.com", "name": "稳赚理财", "bank": "虚假平台"},
-            "缴纳'安全保证金'": {"account": "6216********5678", "name": "XX公安局", "bank": "中国银行"}
+        # SCENARIO PRESETS
+        scenarios = {
+            "💰 Normal Transfer to Friend": {
+                "account": "•••• 4832", "name": "Michael Chen", 
+                "institution": "Chase Bank", "risk": "low"
+            },
+            "📱 Task Commission Payment": {
+                "account": "0x8f3a...c7e9", "name": "QuickTask Platform", 
+                "institution": "Cryptocurrency Wallet", "risk": "high"
+            },
+            "📈 High-Return Investment": {
+                "account": "invest-secure.com", "name": "WealthGrow Fund", 
+                "institution": "Investment Platform", "risk": "high"
+            },
+            "⚖️ 'Legal Fee' Payment": {
+                "account": "•••• 6712", "name": "Federal Court", 
+                "institution": "Bank of America", "risk": "high"
+            }
         }
         
-        selected = preset_info[account_type]
+        selected = scenarios[scenario]
         
+        # TRANSACTION FORM
         col1, col2 = st.columns(2)
         with col1:
-            amount = st.number_input("转账金额 (元)", min_value=1, max_value=500000, 
-                                    value=5000 if account_type == "正常朋友转账" else 50000)
+            amount = st.number_input("Amount (USD)", min_value=1, max_value=200000, 
+                                    value=1000 if scenario == "💰 Normal Transfer to Friend" else 25000)
         with col2:
-            st.text_input("收款账号", value=selected["account"], disabled=True)
+            st.text_input("Recipient Account", value=selected["account"], disabled=True)
         
-        st.text_input("收款人姓名", value=selected["name"], disabled=True)
-        st.text_input("收款银行", value=selected["bank"], disabled=True)
+        st.text_input("Recipient Name", value=selected["name"], disabled=True)
+        st.text_input("Financial Institution", value=selected["institution"], disabled=True)
         
-        # 转账按钮
-        if st.button("🚀 发起转账", type="primary", use_container_width=True):
-            with st.spinner("正在连接联盟链进行实时风险分析..."):
-                # 模拟分析过程
-                time.sleep(2)
+        # INITIATE TRANSACTION
+        if st.button("🚀 Process Transaction", type="primary", use_container_width=True):
+            with st.spinner("Connecting to Seadria Alliance Network..."):
+                time.sleep(2.5)
                 
-                # 根据场景生成不同的风险结果
+                # RISK ANALYSIS
                 risk_profiles = {
-                    "正常朋友转账": {"score": 15, "level": "low", "msg": "✅ 交易环境安全"},
-                    "兼职刷单佣金": {"score": 92, "level": "high", "msg": "🚨 检测到刷单诈骗模式"},
-                    "高收益投资": {"score": 87, "level": "high", "msg": "🚨 疑似虚假投资平台"},
-                    "缴纳'安全保证金'": {"score": 96, "level": "high", "msg": "🚨 符合冒充公检法诈骗特征"}
+                    "💰 Normal Transfer to Friend": {
+                        "score": 8, "level": "low",
+                        "message": "✅ Transaction appears legitimate",
+                        "details": "• Recipient is in your contacts\n• Normal transaction pattern\n• Low-risk amount"
+                    },
+                    "📱 Task Commission Payment": {
+                        "score": 94, "level": "high",
+                        "message": "🚨 Task Fraud Pattern Detected",
+                        "details": "• Platform associated with 142 scam reports\n• Irregular payment pattern\n• High victim concentration"
+                    },
+                    "📈 High-Return Investment": {
+                        "score": 89, "level": "high",
+                        "message": "🚨 Suspected Investment Scam",
+                        "details": "• Unregistered investment platform\n• Promises unrealistic returns\n• 8 alliance members flagged similar patterns"
+                    },
+                    "⚖️ 'Legal Fee' Payment": {
+                        "score": 97, "level": "high",
+                        "message": "🚨 Authority Impersonation Detected",
+                        "details": "• Fake government agency account\n• Urgency pressure tactics\n• Exact match with known fraud template"
+                    }
                 }
                 
-                result = risk_profiles[account_type]
+                result = risk_profiles[scenario]
                 
-                # 显示风险结果
+                # DISPLAY RESULTS
                 st.markdown("---")
-                st.subheader("2. 实时风险分析结果")
+                st.markdown("### 2. Real-time Risk Analysis")
                 
-                # 风险评分展示
+                # RISK INDICATOR
                 if result["level"] == "high":
-                    st.markdown(f'<div class="risk-high">高风险警报！评分：{result["score"]}/100</div>', 
+                    st.markdown(f'<div class="risk-high">CRITICAL RISK ALERT! Score: {result["score"]}/100</div>', 
                                unsafe_allow_html=True)
                 elif result["level"] == "medium":
-                    st.markdown(f'<div class="risk-medium">中度风险！评分：{result["score"]}/100</div>', 
+                    st.markdown(f'<div class="risk-medium">MODERATE RISK! Score: {result["score"]}/100</div>', 
                                unsafe_allow_html=True)
                 else:
-                    st.markdown(f'<div class="risk-low">低风险！评分：{result["score"]}/100</div>', 
+                    st.markdown(f'<div class="risk-low">LOW RISK! Score: {result["score"]}/100</div>', 
                                unsafe_allow_html=True)
                 
-                st.info(f"**分析依据：** {result['msg']}")
+                st.info(f"**Analysis:** {result['message']}")
+                st.warning(f"**Key Findings:**\n{result['details']}")
                 
-                # 具体风险点
-                st.warning("""
-                **🔍 检测到以下风险特征：**
-                - 对方账户近期收到多笔小额测试转账
-                - 交易模式符合已知诈骗模板
-                - 3家联盟银行曾报告类似风险
-                """)
-                
-                # 干预措施
+                # PROTECTION MECHANISMS
                 if result["level"] == "high":
                     st.error("""
-                    **🛡️ 系统已自动采取保护措施：**
-                    1. 交易已暂停，需人工确认
-                    2. 已通知您绑定的守护人（张伟）
-                    3. 建议拨打110或96110咨询
+                    **🛡️ Protection System Activated:**
+                    1. **Transaction suspended** - Requires manual override
+                    2. **Guardian notified** - Family protection network alerted
+                    3. **Law enforcement API** - Report generated for authorities
+                    4. **Alliance warning** - Pattern shared with 12 partner institutions
                     """)
                     
-                    # 操作按钮
-                    col_a, col_b, col_c = st.columns(3)
-                    with col_a:
-                        if st.button("✅ 确认安全，继续转账", type="secondary"):
-                            st.error("⚠️ 强制转账成功，请注意资金安全！")
-                    with col_b:
-                        if st.button("📞 联系收款人核实"):
-                            st.info("正在模拟通话...")
+                    # ACTION BUTTONS
+                    action_col1, action_col2, action_col3 = st.columns(3)
+                    with action_col1:
+                        if st.button("⚠️ Override & Proceed", type="secondary"):
+                            st.error("Transaction forced. **$" + f"{amount:,}" + " transferred.** High risk acknowledged.")
+                    with action_col2:
+                        if st.button("📞 Verify Recipient", type="secondary"):
+                            st.info("Simulating verification call...")
                             time.sleep(1)
-                            st.success("已确认对方身份可疑，建议取消交易")
-                    with col_c:
-                        if st.button("🚫 取消交易"):
-                            st.success("交易已取消，资金安全")
+                            st.success("Verification failed - number disconnected.")
+                    with action_col3:
+                        if st.button("✅ Cancel Transaction", type="primary"):
+                            st.success(f"Transaction canceled. ${amount:,} remains secure.")
                 else:
-                    if st.button("✅ 确认转账", type="primary"):
+                    if st.button("✅ Confirm Transaction", type="primary"):
                         st.balloons()
-                        st.success(f"转账成功！{amount}元已汇出。")
+                        st.success(f"Transaction completed! ${amount:,} transferred successfully.")
     
-    with right_col:
-        st.subheader("📱 模拟手机银行界面")
+    with demo_col:
+        st.markdown("### 📱 Mobile Interface Demo")
         
-        # 模拟手机界面
-        st.markdown("""
-        <div style="border: 2px solid #ccc; border-radius: 20px; padding: 20px; 
-                    width: 300px; margin: 0 auto; background: #f8f9fa;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <strong>智盾安全检测</strong>
+        # MOBILE APP MOCKUP
+        st.markdown(f"""
+        <div style="border: 2px solid #CBD5E1; border-radius: 24px; padding: 25px; 
+                    width: 300px; margin: 0 auto; background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); 
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.08); position: relative;">
+            
+            <!-- Status Bar -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.8em; color: #64748B;">
+                <span>9:41</span>
+                <span>🛡️ Seadria Secure</span>
             </div>
-            <div style="background: white; padding: 15px; border-radius: 10px; 
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <p style="margin: 5px 0;"><small>收款人</small><br><strong>{name}</strong></p>
-                <p style="margin: 5px 0;"><small>账号</small><br><strong>{account}</strong></p>
-                <p style="margin: 5px 0;"><small>金额</small><br><strong>¥{amount}</strong></p>
-                <hr>
-                <p style="color: #666; font-size: 0.9em;">🔒 交易受智盾保护</p>
+            
+            <!-- App Content -->
+            <div style="text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 1.2em; font-weight: 600; color: #1E293B;">Seadria Shield</div>
+                <div style="font-size: 0.9em; color: #475569;">Active Protection</div>
+            </div>
+            
+            <!-- Transaction Card -->
+            <div style="background: white; padding: 20px; border-radius: 16px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 15px 0;">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <div style="font-size: 2em; font-weight: 700; color: #1E293B;">${amount:,}</div>
+                    <div style="font-size: 0.9em; color: #64748B;">Transfer Amount</div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <div style="font-size: 0.8em; color: #94A3B8;">TO ACCOUNT</div>
+                    <div style="font-weight: 600; color: #1E293B;">{selected['account']}</div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <div style="font-size: 0.8em; color: #94A3B8;">RECIPIENT</div>
+                    <div style="font-weight: 600; color: #1E293B;">{selected['name']}</div>
+                </div>
+                
+                <div style="background: {'#FEF3C7' if selected['risk'] == 'high' else '#D1FAE5'}; 
+                            padding: 8px; border-radius: 8px; margin-top: 15px;">
+                    <div style="font-size: 0.8em; color: #92400E if selected['risk'] == 'high' else #065F46;">
+                        {'⚠️ Risk Assessment Pending' if selected['risk'] == 'high' else '✅ Secured Transaction'}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Protection Badge -->
+            <div style="text-align: center; margin-top: 15px;">
+                <div style="display: inline-flex; align-items: center; background: #DBEAFE; 
+                            padding: 6px 12px; border-radius: 20px; font-size: 0.8em;">
+                    <span style="margin-right: 5px;">🔒</span> Seadria Protected
+                </div>
             </div>
         </div>
-        """.format(name=selected["name"], account=selected["account"][:10]+"...", 
-                  amount=format(amount, ",")), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
-        # 家庭守护状态
+        # GUARDIAN NETWORK STATUS
         st.markdown("---")
-        st.subheader("👨‍👩‍👧 家庭守护状态")
+        st.markdown("### 👨‍👩‍👧 Guardian Network")
         st.success("""
-        **已绑定守护人：**
-        - 👨 张伟（父亲）
-        - 👩 李芳（配偶）
+        **Active Guardians:**
+        • 👨 Michael Chen (Father) - **Online**
+        • 👩 Sarah Wilson (Spouse) - **Online 5m ago**
         
-        **最后在线：** 5分钟前
+        **Last Alert:** 2 days ago
         """)
 
-elif page == "🔗 联盟链监控":
-    st.title("🔗 联盟链实时监控面板")
+elif page == "🔗 Alliance Monitor":
+    st.title("🔗 Real-time Alliance Monitor")
+    st.markdown("*Live cross-institution threat intelligence dashboard*")
     
-    # 区块链动画效果
+    # BLOCKCHAIN VISUALIZATION
     st.markdown("""
-    <div class="blockchain-animation">
-        <h4>⛓️ 联盟链实时数据流</h4>
-        <p>正在同步8个节点的风险情报...</p>
+    <div class="block-card">
+        <h4>⛓️ Consortium Blockchain Activity</h4>
+        <p style="color: #6B7280;">Synchronizing threat intelligence across 12 financial institutions...</p>
+        <div style="background: #F3F4F6; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 10px;">
+            <div style="color: #059669;">✓ Block #84291: Bank C → Fraud pattern uploaded</div>
+            <div style="color: #059669;">✓ Block #84292: Payment Platform B → Risk proof verified</div>
+            <div style="color: #2563EB;">⏳ Block #84293: Bank A → Model update aggregating (78%)</div>
+            <div style="color: #6B7280;">◻ Block #84294: Bank D → Pending contribution</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # 模拟实时数据流
-    st.subheader("实时风险警报流")
+    # LIVE ALERT STREAM
+    st.markdown("### 🚨 Live Threat Intelligence Stream")
     
-    # 创建数据流显示
-    alert_data = []
+    # SAMPLE ALERTS
     alerts = [
-        {"node": "银行A", "type": "虚拟投资诈骗", "score": 95, "time": "14:23:01"},
-        {"node": "银行C", "type": "刷单返利", "score": 88, "time": "14:22:45"},
-        {"node": "支付平台B", "type": "冒充客服", "score": 92, "time": "14:22:30"},
-        {"node": "银行F", "type": "贷款诈骗", "score": 76, "time": "14:22:15"},
-        {"node": "银行A", "type": "杀猪盘", "score": 96, "time": "14:22:00"},
+        {"time": "14:28:03", "source": "Bank B", "type": "Investment Scam", "severity": "Critical", "score": 96},
+        {"time": "14:27:45", "source": "Platform C", "type": "Money Mule", "severity": "High", "score": 88},
+        {"time": "14:27:22", "source": "Bank A", "type": "Phishing Attack", "severity": "High", "score": 91},
+        {"time": "14:26:58", "source": "Bank D", "type": "Account Takeover", "severity": "Medium", "score": 74},
+        {"time": "14:26:30", "source": "Bank F", "type": "Synthetic Identity", "severity": "High", "score": 86}
     ]
     
     for alert in alerts:
         with st.container():
-            cols = st.columns([1, 2, 1, 1])
-            cols[0].write(f"🏦 {alert['node']}")
-            cols[1].write(f"{alert['type']}")
-            cols[2].markdown(f"<span class='risk-high'>{alert['score']}</span>", unsafe_allow_html=True)
-            cols[3].write(f"`{alert['time']}`")
+            cols = st.columns([1, 2, 1, 1, 1])
+            cols[0].code(alert["time"])
+            cols[1].write(f"**{alert['type']}**")
+            cols[2].write(f"🏦 {alert['source']}")
+            
+            if alert["severity"] == "Critical":
+                cols[3].markdown(f"<span class='risk-high'>{alert['score']}</span>", unsafe_allow_html=True)
+                cols[4].markdown("🔴 **Critical**")
+            elif alert["severity"] == "High":
+                cols[3].markdown(f"<span class='risk-high'>{alert['score']}</span>", unsafe_allow_html=True)
+                cols[4].markdown("🟠 **High**")
+            else:
+                cols[3].markdown(f"<span class='risk-medium'>{alert['score']}</span>", unsafe_allow_html=True)
+                cols[4].markdown("🟡 **Medium**")
+            
             st.divider()
     
-    # 联邦学习训练状态
+    # FEDERATED LEARNING STATUS
     st.markdown("---")
-    st.subheader("🤖 联邦学习训练状态")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("当前训练轮次", "第42轮", "+1")
-        st.progress(0.78, text="模型聚合进度")
-    with col2:
-        st.metric("参与节点", "8/8", "100%")
-        st.progress(1.0, text="数据同步进度")
-    
-    # 模型效果指标
-    st.markdown("""
-    | 指标 | 单独训练 | 联邦学习 | 提升 |
-    |------|---------|---------|------|
-    | 准确率 | 86.2% | 94.3% | +8.1% |
-    | 召回率 | 78.5% | 89.7% | +11.2% |
-    | 误报率 | 15.3% | 6.8% | -8.5% |
-    """)
-
-elif page == "📊 数据与成效":
-    st.title("📊 数据分析与成效展示")
-    
-    # 生成模拟数据
-    df = generate_transaction_data()
-    
-    # 数据摘要
-    st.subheader("数据摘要")
-    total_tx = len(df)
-    intercepted = len(df[df['状态'] == '已拦截'])
-    success_rate = (intercepted / total_tx * 100) if total_tx > 0 else 0
+    st.markdown("### 🤖 Federated Learning Engine")
     
     col1, col2, col3 = st.columns(3)
-    col1.metric("总交易数", f"{total_tx:,}")
-    col2.metric("成功拦截数", f"{intercepted}")
-    col3.metric("拦截成功率", f"{success_rate:.1f}%")
+    with col1:
+        st.metric("Training Round", "#48", "+1")
+        st.progress(0.82, text="Global Model Aggregation")
+    with col2:
+        st.metric("Active Nodes", "12/12", "100%")
+        st.progress(1.0, text="Data Synchronization")
+    with col3:
+        st.metric("Pattern Library", "8,421", "+142")
+        st.progress(0.65, text="Feature Extraction")
     
-    # 交互式数据表格
-    st.subheader("交易数据明细")
-    st.dataframe(df, use_container_width=True, height=300)
+    # PERFORMANCE COMPARISON
+    st.markdown("#### 🏆 Performance Improvement")
     
-    # 图表分析
-    st.subheader("风险分布分析")
+    comparison_data = pd.DataFrame({
+        "Metric": ["Detection Accuracy", "False Positive Rate", "Response Time", "Pattern Coverage"],
+        "Traditional System": [78.3, 22.5, "4.2s", "64%"],
+        "Seadria Alliance": [96.7, 5.3, "0.8s", "92%"],
+        "Improvement": ["+18.4%", "-17.2%", "-3.4s", "+28%"]
+    })
     
-    tab1, tab2, tab3 = st.tabs(["📈 风险评分分布", "🎯 诈骗类型统计", "📅 时间趋势"])
+    st.dataframe(comparison_data, use_container_width=True, hide_index=True)
+
+elif page == "📈 Analytics & Reports":
+    st.title("📈 Analytics & Impact Reports")
+    
+    # GENERATE SAMPLE DATA
+    df = generate_transaction_data()
+    
+    # EXECUTIVE SUMMARY
+    st.markdown("### 📊 Executive Summary")
+    
+    total_tx = len(df)
+    blocked = len(df[df['Status'] == 'Blocked'])
+    prevented_amount = blocked * random.randint(5000, 50000)
+    
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Total Transactions", f"{total_tx:,}")
+    kpi2.metric("Fraud Attempts Blocked", f"{blocked}")
+    kpi3.metric("Block Rate", f"{(blocked/total_tx*100):.1f}%")
+    kpi4.metric("Estimated Losses Prevented", f"${prevented_amount:,}")
+    
+    # INTERACTIVE DATA EXPLORER
+    st.markdown("---")
+    st.markdown("### 🔍 Transaction Data Explorer")
+    
+    # FILTERS
+    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    with filter_col1:
+        min_risk = st.slider("Minimum Risk Score", 0, 100, 50)
+    with filter_col2:
+        selected_patterns = st.multiselect(
+            "Fraud Patterns",
+            df['Pattern'].unique(),
+            default=df['Pattern'].unique()[:3]
+        )
+    with filter_col3:
+        selected_banks = st.multiselect(
+            "Financial Institutions",
+            df['Bank'].unique(),
+            default=df['Bank'].unique()
+        )
+    
+    # APPLY FILTERS
+    filtered_df = df[
+        (df['Risk Score'] >= min_risk) &
+        (df['Pattern'].isin(selected_patterns)) &
+        (df['Bank'].isin(selected_banks))
+    ]
+    
+    # DATA DISPLAY
+    tab1, tab2, tab3 = st.tabs(["📋 Data Table", "📈 Visual Analytics", "📊 Institution Breakdown"])
     
     with tab1:
-        fig1 = px.histogram(df, x='风险评分', nbins=20, 
-                           title='风险评分分布直方图')
-        st.plotly_chart(fig1, use_container_width=True)
+        st.dataframe(filtered_df, use_container_width=True, height=400)
+        
+        # EXPORT OPTION
+        if st.button("📥 Export to CSV"):
+            csv = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="Download CSV",
+                data=csv,
+                file_name="seadria_transaction_data.csv",
+                mime="text/csv"
+            )
     
     with tab2:
-        type_counts = df['类型'].value_counts().reset_index()
-        type_counts.columns = ['诈骗类型', '数量']
-        fig2 = px.pie(type_counts, values='数量', names='诈骗类型',
-                     title='诈骗类型分布')
+        st.markdown("##### Risk Score Distribution")
+        fig1 = px.histogram(filtered_df, x='Risk Score', nbins=20,
+                           title='Risk Score Frequency Distribution')
+        st.plotly_chart(fig1, use_container_width=True)
+        
+        st.markdown("##### Fraud Pattern Analysis")
+        pattern_counts = filtered_df['Pattern'].value_counts().reset_index()
+        pattern_counts.columns = ['Fraud Pattern', 'Cases']
+        fig2 = px.pie(pattern_counts, values='Cases', names='Fraud Pattern',
+                     title='Fraud Pattern Distribution')
         st.plotly_chart(fig2, use_container_width=True)
     
     with tab3:
-        # 按状态分组
-        status_counts = df.groupby(['时间', '状态']).size().unstack().fillna(0)
-        fig3 = px.area(status_counts, title='交易状态趋势')
+        st.markdown("##### Performance by Institution")
+        bank_performance = filtered_df.groupby('Bank').agg({
+            'Risk Score': 'mean',
+            'Pattern': 'count'
+        }).reset_index()
+        bank_performance.columns = ['Institution', 'Avg Risk Score', 'Cases Detected']
+        
+        fig3 = px.bar(bank_performance, x='Institution', y=['Avg Risk Score', 'Cases Detected'],
+                     title='Institution Performance Comparison',
+                     barmode='group')
         st.plotly_chart(fig3, use_container_width=True)
 
-# ==================== 页脚 ====================
+# ==================== FOOTER ====================
 st.markdown("---")
-st.caption("""
-**演示说明：** 本系统为"智盾金融反诈平台"概念演示，所有数据均为模拟生成，用于展示基于联邦学习与区块链的协同反诈技术架构。
-""")
+st.markdown("""
+<div style="text-align: center; color: #6B7280; font-size: 0.9em;">
+    <p><strong>🛡️ Seadria Antifraud Intelligence Platform</strong></p>
+    <p>Federated Learning & Blockchain Consortium | Version 2.1.4</p>
+    <p>© 2024 Seadria Technologies. For demonstration purposes only.</p>
+</div>
+""", unsafe_allow_html=True)
 
-# 添加自动刷新（可选）
-if st.sidebar.checkbox("🔄 开启实时更新"):
+# AUTO-REFRESH OPTION
+if st.sidebar.checkbox("🔄 Enable Live Updates"):
     st.rerun()
+
+# ADDITIONAL SIDEBAR INFO
+st.sidebar.markdown("---")
+st.sidebar.info("""
+**Demo Instructions:**
+1. Try different transaction scenarios
+2. Observe real-time risk assessment
+3. Experience multi-layered protection
+""")

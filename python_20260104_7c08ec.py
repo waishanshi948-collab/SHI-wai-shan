@@ -69,7 +69,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== SIDEBAR NAVIGATION ====================
-st.sidebar.markdown(f"""
+st.sidebar.markdown("""
 <div style='text-align: center; margin-bottom: 30px;'>
     <h2 style='color: #2563EB;'>🛡️ Seadria</h2>
     <h3 style='color: #1E3A8A; font-size: 1.1rem;'>Antifraud Intelligence</h3>
@@ -376,7 +376,7 @@ elif page == "💸 Transaction Simulator":
                 
                 <div style="background: {'#FEF3C7' if selected['risk'] == 'high' else '#D1FAE5'}; 
                             padding: 8px; border-radius: 8px; margin-top: 15px;">
-                    <div style="font-size: 0.8em; color: #92400E if selected['risk'] == 'high' else #065F46;">
+                    <div style="font-size: 0.8em; color: {'#92400E' if selected['risk'] == 'high' else '#065F46'};">
                         {'⚠️ Risk Assessment Pending' if selected['risk'] == 'high' else '✅ Secured Transaction'}
                     </div>
                 </div>
@@ -557,16 +557,32 @@ elif page == "📈 Analytics & Reports":
     
     with tab3:
         st.markdown("##### Performance by Institution")
+        
+        # CORRECTED CODE - 修复了这里的关键错误
+        # 创建正确的机构性能数据
         bank_performance = filtered_df.groupby('Bank').agg({
             'Risk Score': 'mean',
-            'Pattern': 'count'
         }).reset_index()
-        bank_performance.columns = ['Institution', 'Avg Risk Score', 'Cases Detected']
+        bank_performance['Cases'] = filtered_df.groupby('Bank').size().values
         
-        fig3 = px.bar(bank_performance, x='Institution', y=['Avg Risk Score', 'Cases Detected'],
-                     title='Institution Performance Comparison',
-                     barmode='group')
-        st.plotly_chart(fig3, use_container_width=True)
+        # 创建两个子图来分别显示
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 平均风险分数
+            fig3a = px.bar(bank_performance, x='Bank', y='Risk Score',
+                          title='Average Risk Score by Institution',
+                          color='Risk Score',
+                          color_continuous_scale='RdYlGn_r')  # 红色高风险，绿色低风险
+            st.plotly_chart(fig3a, use_container_width=True)
+        
+        with col2:
+            # 检测到的案例数
+            fig3b = px.bar(bank_performance, x='Bank', y='Cases',
+                          title='Cases Detected by Institution',
+                          color='Cases',
+                          color_continuous_scale='Blues')
+            st.plotly_chart(fig3b, use_container_width=True)
 
 # ==================== FOOTER ====================
 st.markdown("---")
